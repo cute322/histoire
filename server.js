@@ -1,53 +1,56 @@
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
-const fs = require('fs');
 const path = require('path');
+const { Pool } = require('pg'); // ** جديد: استدعاء مكتبة قاعدة البيانات
 
 // 1. إعداد الخادم والتطبيقات
 const app = express();
-const server = http.createServer(app); // نستخدم خادم http لدعمه للـ WebSocket
-const wss = new WebSocket.Server({ server }); // نربط WebSocket بنفس الخادم
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
 
 const PORT = process.env.PORT || 3000;
+app.use(express.json());
+app.use(express.static('public'));
 
-// 2. إعدادات Express (Middleware)
-app.use(express.json()); // للسماح بقراءة بيانات JSON من الطلبات
-app.use(express.static('public')); // لاستضافة كل الملفات في مجلد 'public'
-
-// 3. إدارة اتصالات صفحة التحكم (Admin Page)
-const adminClients = new Set();
-
-wss.on('connection', (ws) => {
-    console.log('مراقب جديد انضم (صفحة التحكم).');
-    adminClients.add(ws); // إضافة الاتصال الجديد إلى قائمة المراقبين
-
-    ws.on('close', () => {
-        console.log('مراقب غادر.');
-        adminClients.delete(ws); // إزالة الاتصال عند إغلاق الصفحة
-    });
+// 2. الاتصال بقاعدة البيانات
+// Render ستوفر رابط الاتصال تلقائيًا في متغير البيئة هذا
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.RENDER ? { rejectUnauthorized: false } : false,
 });
 
-// 4. دوال مساعدة لقراءة وكتابة النتائج من ملف JSON
-const resultsFilePath = path.join(__dirname, 'results.json');
-
-const readResults = () => {
-    if (!fs.existsSync(resultsFilePath)) {
-        return [];
+// ** جديد: دالة لإنشاء الجدول في قاعدة البيانات عند بدء التشغيل
+async function createTable() {
+    const client = await pool.connect();
+    try {
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS results (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                score INTEGER NOT NULL,
+                total_questions INTEGER NOT NULL,
+                submission_date TIMESTAMPTZ DEFAULT NOW(),
+                answers JSONB NOT NULL
+            );
+        `);
+        console.log('جدول النتائج جاهز في قاعدة البيانات.');
+    } catch (err) {
+        console.error('خطأ في إنشاء الجدول:', err);
+    } finally {
+        client.release();
     }
-    const data = fs.readFileSync(resultsFilePath, 'utf-8');
-    // التأكد من أن الملف ليس فارغًا قبل محاولة تحليله
-    return data.length > 0 ? JSON.parse(data) : [];
-};
+}
 
-const writeResults = (data) => {
-    fs.writeFileSync(resultsFilePath, JSON.stringify(data, null, 2));
-};
+// 3. إدارة اتصالات WebSocket
+const adminClients = new Set();
+wss.on('connection', (ws) => {
+    adminClients.add(ws);
+    ws.on('close', () => adminClients.delete(ws));
+});
 
-// 5. دالة لإرسال التحديثات الفورية لكل المراقبين
 function broadcastNewResult(newResult) {
     for (const client of adminClients) {
-        // التأكد من أن الاتصال لا يزال مفتوحًا قبل الإرسال
         if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify(newResult));
         }
@@ -58,79 +61,67 @@ function broadcastNewResult(newResult) {
 // ==              نقاط النهاية (API Endpoints)              ==
 // ==========================================================
 
-// مسار لاستقبال نتائج الكويز من المستخدمين
-app.post('/submit-quiz', (req, res) => {
+// مسار لاستقبال وحفظ النتائج في قاعدة البيانات
+app.post('/submit-quiz', async (req, res) => {
     try {
-        const newResult = {
-            ...req.body,
-            submissionDate: new Date().toLocaleString('ar-DZ', { timeZone: 'Africa/Algiers' })
-        };
-        const allResults = readResults();
-        allResults.push(newResult);
-        writeResults(allResults);
-
-        // إرسال النتيجة الجديدة فوراً لكل من يراقب صفحة التحكم
-        broadcastNewResult(newResult);
-
-        res.status(200).json({ message: "تم تسجيل نتيجتك بنجاح!" });
+        const { name, score, totalQuestions, answers } = req.body;
+        const result = await pool.query(
+            'INSERT INTO results (name, score, total_questions, answers) VALUES ($1, $2, $3, $4) RETURNING *',
+            [name, score, totalQuestions, JSON.stringify(answers)]
+        );
+        
+        // إرسال النتيجة الجديدة (مع التاريخ من قاعدة البيانات) للتحديث الفوري
+        broadcastNewResult(result.rows[0]);
+        
+        res.status(200).json({ message: "تم تسجيل نتيجتك بنجاح في قاعدة البيانات!" });
     } catch (error) {
-        console.error("Error in /submit-quiz:", error);
+        console.error("خطأ في حفظ النتيجة:", error);
         res.status(500).json({ message: "حدث خطأ أثناء حفظ النتيجة." });
     }
 });
 
-// مسار لجلب كل النتائج المسجلة (لأول تحميل لصفحة التحكم)
-app.get('/admin-results', (req, res) => {
-    res.status(200).json(readResults());
+// مسار لجلب كل النتائج من قاعدة البيانات
+app.get('/admin-results', async (req, res) => {
+    try {
+        const results = await pool.query('SELECT * FROM results ORDER BY submission_date DESC');
+        res.status(200).json(results.rows);
+    } catch (error) {
+        console.error("خطأ في جلب النتائج:", error);
+        res.status(500).json({ message: "حدث خطأ أثناء جلب النتائج." });
+    }
 });
 
-// مسار لجلب الإحصائيات المجمعة للأسئلة
-app.get('/stats', (req, res) => {
+// مسار الإحصائيات (يعمل بنفس الطريقة لكن يقرأ من قاعدة البيانات)
+app.get('/stats', async (req, res) => {
     try {
-        const allResults = readResults();
+        const results = await pool.query('SELECT answers FROM results');
+        const allResults = results.rows.map(row => ({ answers: row.answers }));
         const questionStats = {};
 
-        // تجميع البيانات
+        // منطق الحساب يبقى كما هو
         for (const result of allResults) {
             if (!result.answers) continue;
             for (const answer of result.answers) {
                 const question = answer.question;
                 if (!questionStats[question]) {
-                    questionStats[question] = {
-                        question: question,
-                        correctAnswer: answer.correctAnswer,
-                        totalAttempts: 0,
-                        correctAttempts: 0,
-                        options: {}
-                    };
+                    questionStats[question] = { question, correctAnswer: answer.correctAnswer, totalAttempts: 0, correctAttempts: 0, options: {} };
                 }
                 const stats = questionStats[question];
                 stats.totalAttempts++;
-                if (answer.isCorrect) {
-                    stats.correctAttempts++;
-                }
+                if (answer.isCorrect) stats.correctAttempts++;
                 const selected = answer.selectedAnswer;
                 stats.options[selected] = (stats.options[selected] || 0) + 1;
             }
         }
-
-        // تحويل الكائن إلى مصفوفة وإرسالها
-        const statsArray = Object.values(questionStats);
-        res.status(200).json(statsArray);
+        res.status(200).json(Object.values(questionStats));
     } catch (error) {
-        console.error("Error in /stats:", error);
-        res.status(500).json({ message: "حدث خطأ أثناء حساب الإحصائيات." });
+        console.error("خطأ في حساب الإحصائيات:", error);
+        res.status(500).json({ message: "حدث خطأ." });
     }
 });
 
-
-// 6. تشغيل الخادم
+// 6. تشغيل الخادم وإنشاء الجدول
 server.listen(PORT, () => {
-    console.log(`===================================================`);
-    console.log(`  الخادم يعمل الآن على http://localhost:${PORT}`);
-    console.log(`===================================================`);
-    console.log(`🔗 رابط الكويز للمستخدمين: http://localhost:${PORT}`);
-    console.log(`📊 رابط سجل النتائج: http://localhost:${PORT}/admin.html`);
-    console.log(`📈 رابط صفحة الإحصائيات: http://localhost:${PORT}/stats.html`);
-    console.log(`===================================================`);
+    console.log(`الخادم يعمل الآن على http://localhost:${PORT}`);
+    createTable(); // استدعاء دالة إنشاء الجدول عند بدء التشغيل
 });
