@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رحلة إلى قيصرية | كويز آثار شرشال</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.png" type="image/png">
+</head>
+<body class="welcome-page-body">
+
+    <div class="welcome-container">
+        <div class="welcome-header">
+            <h1 class="main-title">رحلة إلى قيصرية</h1>
+            <p class="subtitle">اختبر معرفتك بتاريخ وآثار مدينة شرشال العريقة</p>
+        </div>
+        <div class="welcome-form">
+            <!-- ** تم التغيير هنا ** -->
+            <p>سجل اسمك لتعرف نتيجة اختبارك</p>
+            <input type="text" id="nameInput" placeholder="اكتب اسمك هنا..." required>
+            <!-- ** تم التغيير هنا ** -->
+            <button onclick="startQuiz()">ابدأ الاختبار</button>
+        </div>
+    </div>
+
+    <script>
+        function startQuiz() {
+            const name = document.getElementById('nameInput').value;
+            if (name.trim() === "") {
+                alert("الرجاء إدخال اسمك أولاً!");
+                return;
+            }
+            window.location.href = `quiz.html?name=${encodeURIComponent(name)}`;
+        }
+    </script>
+</body>
+</html>

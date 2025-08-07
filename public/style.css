@@ -1,0 +1,288 @@
+@import url('https://fonts.googleapis.com/css2?family=Marhey:wght@400;700&family=Cairo:wght@400;600&display=swap');
+
+:root {
+    --font-title: 'Marhey', cursive;
+    --font-body: 'Cairo', sans-serif;
+    --color-sand: #f4e9d8;
+    --color-stone: #4a4a4a;
+    --color-papyrus: #fffbf2;
+    --color-bronze: #ab854f;
+    --color-accent: #8b4513; /* SaddleBrown */
+    --correct-border: #5f9ea0; /* CadetBlue */
+    --incorrect-border: #b22222; /* Firebrick */
+    --correct-text-color: #2e8b57; /* SeaGreen */
+    --incorrect-text-color: #b22222; /* Firebrick */
+}
+
+body {
+    font-family: var(--font-body);
+    /* ** ضع هنا رابط صورة الخلفية التي تفضلها ** */
+    /* مثال: background-image: url('https://images.unsplash.com/photo-1571936322992-8697b83377a1'); */
+    background-color: #3d3d3d;
+    background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 1rem;
+    position: relative;
+    box-sizing: border-box;
+}
+
+body::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(40, 30, 20, 0.6);
+    z-index: -1;
+}
+
+/* --- تصميم صفحة البداية --- */
+.welcome-container {
+    background: var(--color-papyrus);
+    color: var(--color-stone);
+    border: 8px solid var(--color-bronze);
+    border-radius: 10px;
+    padding: 3rem;
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.main-title {
+    font-family: var(--font-title);
+    font-size: 3.5rem;
+    color: var(--color-accent);
+    margin: 0;
+}
+.subtitle {
+    font-size: 1.2rem;
+    margin: 0.5rem 0 2rem 0;
+}
+input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #dcd1c0;
+    border-radius: 5px;
+    background: #fff;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    box-sizing: border-box;
+}
+.welcome-container button, .final-result button {
+    background: var(--color-accent);
+    color: var(--color-papyrus);
+    border: none;
+    border-radius: 8px;
+    padding: 1rem 2.5rem;
+    font-family: var(--font-body);
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.welcome-container button:hover, .final-result button:hover {
+    background: #a0522d;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+/* --- تصميم الكويز نفسه --- */
+.quiz-container {
+    background: var(--color-papyrus);
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    width: 100%;
+    max-width: 700px;
+}
+#quiz-content { padding: 2rem; }
+.quiz-header { margin-bottom: 1.5rem; }
+.progress-container { background-color: #dcd1c0; border-radius: 5px; height: 10px; }
+.progress-bar { background-color: var(--color-bronze); height: 100%; border-radius: 5px; transition: width 0.4s ease; }
+h2#question { font-size: 1.6rem; text-align: center; color: var(--color-stone); margin: 1.5rem 0 2rem 0; line-height: 1.6; }
+ul { list-style: none; padding: 0; }
+li label {
+    display: block;
+    background-color: #fff;
+    border: 2px solid #dcd1c0;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+li label:hover { border-color: var(--color-bronze); }
+input[type="radio"] { display: none; }
+.option-text { font-size: 1.1rem; color: var(--color-stone); }
+
+/* Feedback States - النسخة النهائية */
+li label.correct, li label.incorrect {
+    border-width: 3px;
+}
+li label.correct {
+    border-color: var(--correct-border);
+}
+li label.incorrect {
+    border-color: var(--incorrect-border);
+}
+li label.correct .option-text {
+    color: var(--correct-text-color);
+    font-weight: 600;
+}
+li label.incorrect .option-text {
+    color: var(--incorrect-text-color);
+    font-weight: 600;
+}
+/* تم حذف الأيقونات (::after) بالكامل كما طلبت */
+
+/* --- تصميم شاشة النتائج النهائية --- */
+.final-result { text-align: center; padding: 2rem; }
+.final-result h2 { font-family: var(--font-title); color: var(--color-accent); font-size: 2.5rem; }
+.final-result p { color: var(--color-stone); font-size: 1.1rem; margin-bottom: 1.5rem; }
+.result-medallion {
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    border: 10px solid var(--color-bronze);
+    background: #fff;
+    color: var(--color-stone);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem auto 2rem auto;
+    font-size: 2.5rem;
+    font-weight: 600;
+}
+
+/* --- تصميم صفحة التحكم (Admin Page) النهائية --- */
+.admin-page-body {
+    align-items: flex-start;
+}
+.admin-container {
+    width: 100%;
+    max-width: 900px;
+    background: var(--color-papyrus);
+    padding: 2rem;
+    border-radius: 10px;
+    color: var(--color-stone);
+    margin-top: 2rem;
+    margin-bottom: 2rem; /* لإعطاء مساحة سفلية */
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.admin-title {
+    font-family: var(--font-title);
+    color: var(--color-accent);
+    text-align: center;
+    margin-bottom: 2rem;
+}
+.user-result-card {
+    border: 3px solid #dcd1c0;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+.user-info {
+    background-color: #dcd1c0;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap; /* للسماح بالالتفاف على الشاشات الصغيرة */
+}
+.user-info h3 {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 1.3rem;
+    color: var(--color-accent);
+}
+.user-info span, .user-info small {
+    font-weight: 600;
+}
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+.results-table th, .results-table td {
+    padding: 12px 15px;
+    text-align: right;
+    border-bottom: 1px solid #dcd1c0;
+}
+.results-table th {
+    background-color: #fffbf2;
+}
+.results-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.correct-text {
+    color: var(--correct-text-color);
+    font-weight: 600;
+}
+.incorrect-text {
+    color: var(--incorrect-text-color);
+    text-decoration: line-through;
+}
+/* --- تصميم صفحة الإحصائيات (Stats Page) --- */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+.nav-button {
+    background: var(--color-bronze);
+    color: var(--color-papyrus);
+    padding: 0.8rem 1.2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+.nav-button:hover {
+    background-color: #9c7546;
+}
+.stat-card {
+    background: #fff;
+    border: 2px solid #dcd1c0;
+    border-radius: 10px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+}
+.stat-card h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: var(--color-stone);
+    font-size: 1.3rem;
+    line-height: 1.5;
+}
+.stat-option {
+    margin-bottom: 1rem;
+}
+.stat-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+.stat-progress-container {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    height: 12px;
+    overflow: hidden;
+}
+.stat-progress-bar {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.5s ease-in-out;
+}
+.stat-progress-bar.correct {
+    background-color: var(--correct-text-color);
+}
+.stat-progress-bar.incorrect {
+    background-color: var(--incorrect-text-color);
+    opacity: 0.7;
+}
